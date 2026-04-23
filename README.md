@@ -1,4 +1,4 @@
-# pydetect
+# pydetect ![tests](https://github.com/ryoshu404/pydetect/actions/workflows/test.yml/badge.svg)
 
 Detection-as-code: Sigma, Falco, and Panther rules with pytest validation and per-rule decision documentation.
 
