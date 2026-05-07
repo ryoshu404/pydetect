@@ -68,19 +68,23 @@ Each rule shipped to the repository produces five artifacts: the rule file, two 
 
 # Frameworks
 
-pydetect covers three detection frameworks selected to span the layers of the telemetry stack rather than to demonstrate variants of the same approach.
+pydetect covers detection frameworks selected to span the layers of the telemetry stack rather than to demonstrate variants of the same approach. v1 ships with Sigma and KQL; Falco and Panther are v1.1 additions.
 
 ## Sigma
 
-SIEM-agnostic detection rules in YAML. Compiles to backend-specific queries (Splunk, Elastic, Sentinel KQL) at deploy time. pydetect's Sigma scope is endpoint and log-based detection: Windows process creation, Sysmon events, Linux auditd. Rules follow SigmaHQ field conventions where applicable.
-
-## Falco
-
-Runtime security rules for Linux syscalls and Kubernetes audit events. pydetect's Falco scope is host-level behavior at the syscall layer — process spawning patterns, sensitive file access, unexpected network activity from system processes. Rules are evaluated against synthetic JSON event fixtures; full Falco runtime evaluation via `.scap` capture playback is deferred.
+SIEM-agnostic detection rules in YAML. Compiles to backend-specific queries (Splunk, Elastic, Sentinel KQL) at deploy time. pydetect's Sigma scope is endpoint and log-based detection: Windows process creation, Sysmon events, PowerShell script block logging. Rules follow SigmaHQ field conventions where applicable.
 
 ## KQL
 
 Microsoft Defender XDR detection queries authored against the published Defender table schemas (DeviceProcessEvents, DeviceNetworkEvents, etc.). Rules are stored as raw `.kql` files with metadata in the corresponding decision doc. The KQL adapter is a synthetic Python interpreter covering a bounded operator surface for filter-shape signature queries; aggregating and windowed queries are out of scope (those live in hunting queries, not signatures).
+
+## Falco (v1.1)
+
+Runtime security rules for Linux syscalls and Kubernetes audit events. v1 ships without Falco rules; v1.1 extends pydetect into cloud-native deployment detection (K8s audit events, container runtime behavior, sensitive file access from system processes). Falco's adapter skeleton is in place at `tests/adapters/falco_adapter.py` and will be implemented when the first Falco rule lands.
+
+## Panther (v1.1)
+
+Cloud and SaaS audit log detection rules in Python (CloudTrail, Okta, GitHub audit, Google Workspace). v1 demonstrates the methodology across telemetry-layer-coverage frameworks; v1.1 extends to cloud audit log detection as the next batch of rules.
 
 ---
 
@@ -166,18 +170,20 @@ There is no database, no lockfile, no central registry. Rules live as files. Fix
 
 ## v1.0
 
-- 9-12 rules across Sigma / Falco / KQL organized into 3-4 TTP-cluster batches
+- 6-7 rules across Sigma and KQL organized into 3 TTP-cluster batches
 - Per-rule decision docs with research-sourced provenance
 - Cross-framework cluster coherence (rules within a TTP batch reference each other)
 - Green CI with full rule coverage
 - Methodology README (this document)
 - Work-side KQL rollout in progress at the AF
 
-## v1.1 (pre-application targets where possible)
+## v1.1 (cloud-environment extension)
 
-- **Panther adapter and rules.** Research-sourced rules covering cloud and SaaS audit log detections (CloudTrail, Okta, GitHub audit, Google Workspace). Slots into subsequent TTP batches that include cloud-layer attacker behavior. 4-5 rules following the same harness pattern as Sigma / Falco / KQL.
-- **Analysis pipeline scripts.** Manual-trigger Python scripts that consume Gorelate's `/iocs/flagged` endpoint, fetch samples from MalwareBazaar, submit to Triage, and store reports under `analysis/reports/`. Pre-application target if Gorelate v1 ships in time; post-application v1.1 follow-through otherwise.
-- **One upstream rule submission.** Opportunistic — pick the strongest rule from the v1 batches, conform to SigmaHQ or falcosecurity/rules style conventions, and submit a single PR for review. Upstream review timelines are out of the author's control, so this is best-effort rather than a hard commitment.
+- **Falco adapter and rules.** Linux syscall and Kubernetes audit event detection following the same harness pattern as Sigma and KQL. Adapter skeleton in place at `tests/adapters/falco_adapter.py`. Rules cover cloud-native deployment behavior — container runtime, K8s audit, sensitive file access from system processes.
+- **Panther adapter and rules.** Cloud audit log detection in Python — CloudTrail, Okta System Log, GitHub audit, Google Workspace admin audit. Continues the cloud-environment theme from v1's AWS Sigma rules.
+- **Analysis pipeline scripts.** Manual-trigger Python scripts that consume Gorelate's `/iocs/flagged` endpoint, fetch samples from MalwareBazaar, submit to Triage, and store reports under `analysis/reports/`. Timeline-dependent on Gorelate v1.
+- **One upstream rule submission.** Opportunistic — pick the strongest rule from the v1 batches, conform to SigmaHQ style conventions, and submit a single PR for review. Best-effort rather than hard commitment.
+
 ## v2 (post-application)
 
 - Kustainer-based real KQL evaluation if the synthetic interpreter's operator surface proves insufficient against the work-side rule corpus
