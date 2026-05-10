@@ -1,4 +1,4 @@
-"""Sigma rule adapter (synthetic evaluator)."""
+"""Sigma rule adapter"""
 
 from __future__ import annotations
 

@@ -1,52 +1,125 @@
-"""pytest configuration and shared helpers for pydetect.
-
-Provides:
-- load_fixture(): helper for loading JSON event fixtures from disk
-- _validate_fixtures(): collection-time fail-fast that ensures every
-rule has both positive.json and negative.json before tests run
-"""
+"""pytest configuration and shared helpers for pydetect."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).parent.parent
 FIXTURE_ROOT = Path(__file__).parent / "fixtures"
-FRAMEWORKS: dict[str, str] = {
-    "sigma": "*.yml",
-    "falco": "*.yaml",
-    "kql": "*.kql",
-}
-REQUIRED_FIXTURE_KINDS = ("positive", "negative")
+DATASETS_DIR = FIXTURE_ROOT / "_datasets"
 
-def load_fixture(rule_name: str, kind: str) -> dict:
-    """Load a JSON event fixture from tests/fixtures/<rule_name>/<kind>.json."""
-    if kind not in REQUIRED_FIXTURE_KINDS:
-        raise ValueError(
-            f"Invalid fixture kind: {kind!r}. Must be one of {REQUIRED_FIXTURE_KINDS}."
-            )
-    fixture_path = FIXTURE_ROOT / rule_name / f"{kind}.json"
-    return json.loads(fixture_path.read_text(encoding="utf-8"))
+
+def load_dataset(dataset_filename: str) -> list[dict]:
+    """Load a dataset JSON file from tests/fixtures/_datasets/."""
+    dataset_path = DATASETS_DIR / dataset_filename
+    if not dataset_path.is_file():
+        raise FileNotFoundError(f"{dataset_path} not found")
+    with open (dataset_path, "r", encoding="utf-8") as f:
+        dataset = json.load(f)
+    if not isinstance(dataset, list):
+        raise ValueError(f"Expected list, received {type(dataset).__name__}")
+    if not dataset:
+        return dataset
+    if not isinstance(dataset[0], dict):
+        raise ValueError(f"Expected list of dicts, received list of {type(dataset[0]).__name__}")
+    return dataset
+
+
+def load_labels(rule_name: str) -> dict:
+    """Load a labels file from tests/fixtures/<rule_name>/labels.json."""
+    labels_path = FIXTURE_ROOT / rule_name / "labels.json"
+    if not labels_path.is_file():
+        raise FileNotFoundError(f"{labels_path} not found")
+    with open (labels_path, "r", encoding="utf-8") as f:
+        labels = json.load(f)
+    return labels
+
+
+def discover_rules() -> list[tuple[Path, dict]]:
+    """Discover rule directories under tests/fixtures/."""
+    rules = []
+    for directory in sorted(FIXTURE_ROOT.iterdir(), key=lambda p: p.name):
+        if not directory.is_dir():
+            continue
+        if directory.name.startswith("_"):
+            continue
+
+        rule_name = directory.name
+        rule_file = REPO_ROOT / "sigma" / f"{rule_name}.yml"
+        labels = load_labels(rule_name)
+        rules.append((rule_file, labels))
+
+    return rules
 
 def _validate_fixtures() -> None:
-    """Fail-fast at collection time if any rule lacks required fixtures."""
-    missing = []
-    for framework, glob in FRAMEWORKS.items():
-        framework_dir = REPO_ROOT / framework
-        if not framework_dir.exists():
+    """Collect all fixture validation problems at collection time; raise pytest.UsageError if any."""
+    problems = []
+    for directory in FIXTURE_ROOT.iterdir():
+        if not directory.is_dir():
             continue
-        for rule_path in sorted(framework_dir.glob(glob)):
-            for kind in REQUIRED_FIXTURE_KINDS:
-                fixture_path = FIXTURE_ROOT / rule_path.stem / f"{kind}.json"
-                if not fixture_path.exists():
-                    missing.append(
-                        f"{framework}/{rule_path.name} -> tests/fixtures/{rule_path.stem}/{kind}.json"
-                    )
-    if missing:
-        raise AssertionError(
-            "Missing required fixtures for the following rules:\n "
-            + "\n ".join(missing)
-        )
+        if directory.name.startswith("_"):
+            continue
+
+        rule_name = directory.name
+        rule_file = REPO_ROOT / "sigma" / f"{rule_name}.yml"
+        if not rule_file.is_file():
+            problems.append(f"{rule_name}: rule file missing at {rule_file}")
+            continue
+
+        labels_path = directory / "labels.json"
+        if not labels_path.is_file():
+            problems.append(f"{rule_name}: missing labels.json at {labels_path}")
+            continue
+
+        labels = load_labels(rule_name)
+        if "rule_name" not in labels:
+            problems.append(f"{rule_name}: labels.json missing required key 'rule_name'")
+        elif labels["rule_name"] != rule_name:
+            problems.append(f"{rule_name}: declared rule_name='{labels['rule_name']}' doesn't match directory name")
+
+        if "datasets" not in labels:
+            problems.append(f"{rule_name}: labels.json missing required key 'datasets'")
+            continue
+        elif not isinstance(labels["datasets"], list):
+            problems.append(f"{rule_name}: datasets is not a list")
+            continue
+        elif not labels["datasets"]:
+            problems.append(f"{rule_name}: datasets is empty")
+            continue
+
+        for entry_idx, dataset_entry in enumerate(labels["datasets"]):
+            if "file" not in dataset_entry:
+                problems.append(f"{rule_name}: datasets[{entry_idx}] missing 'file' key")
+                continue
+
+            dataset_file = dataset_entry["file"]
+            dataset_path = DATASETS_DIR / dataset_file
+            if not dataset_path.is_file():
+                problems.append(f"{rule_name}: datasets[{entry_idx}] references missing dataset {dataset_file}")
+                continue
+            if "attack_event_indices" not in dataset_entry:
+                problems.append(f"{rule_name}: datasets[{entry_idx}] missing 'attack_event_indices' key")
+                continue
+
+            dataset = load_dataset(dataset_file)
+            for idx in dataset_entry["attack_event_indices"]:
+                if not isinstance(idx, int):
+                    problems.append(
+                        f"{rule_name}: datasets[{entry_idx}] attack_event_indices contains non-int {idx!r}"
+                        )
+                elif idx < 0 or idx >= len(dataset):
+                    problems.append(
+                        f"{rule_name}: datasets[{entry_idx}] index {idx} out of range "
+                        f"for dataset of length {len(dataset)}"
+                        )
+
+    if problems:
+        raise pytest.UsageError(
+            "Following problems found:\n - "
+            +"\n - ".join(problems)
+            )
 
 _validate_fixtures()
