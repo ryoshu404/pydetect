@@ -1,0 +1,9 @@
+{
+    "rule_name": "harness-smoke-test",
+    "datasets": [
+        {
+            "file": "harness_smoke.json",
+            "attack_event_indices": [0, 2]
+        }
+    ]
+}

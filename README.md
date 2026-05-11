@@ -4,7 +4,7 @@
 
 pydetect is a detection-as-code repository written in Python that authors and tests Sigma detection rules with per-rule decision documentation. The goal of pydetect is to demonstrate detection engineering as a software discipline — rules in version control, tests that validate rule logic against captured attack telemetry, decision documentation that captures reasoning, and continuous integration that enforces it all.
 
-The repository contains Sigma rules backed by a Python pytest harness, fixture validation at test collection time, and GitHub Actions CI that blocks merges without passing tests. Falco, Panther, and KQL framework adapters are deferred to v1.1.
+The repository contains Sigma rules backed by a Python pytest harness, fixture validation at test collection time, and GitHub Actions CI that blocks merges without passing tests. KQL adapter is deferred to v1.1.
 
 ---
 
@@ -18,7 +18,7 @@ pydetect implements detection engineering as a structured engineering practice:
 - Collection-time fixture validation that fails CI before any test runs if rules lack their fixture labels
 - GitHub Actions CI gating every push and pull request
 
-Rules are organized into TTP-cluster batches — each batch covers an attacker behavior with one or more rules sharing a threat-research foundation. v1 batches: Cobalt Strike default profile, LSASS credential access, lateral movement via service creation, and AWS attack patterns.
+Rules are organized into TTP-cluster batches — each batch covers an attacker behavior with one or more rules sharing a threat-research foundation. v1 batches: Cobalt Strike default profile, LSASS credential access, lateral movement via service creation, and AWS detection against the OTRF Cloud Bank Breach scenario.
 
 ---
 
@@ -28,7 +28,7 @@ pydetect treats detection rules as production code. Three principles drive the s
 
 **Rules authored from research, validated against captured telemetry.** Rules begin with a documented attacker behavior — typically from a credible threat-research source (Mandiant, Microsoft Threat Intelligence, Unit 42, The DFIR Report, WithSecure Labs, etc.). The threat model section of each decision document captures the behavior at field-level detail, citing the source. Rule logic is then tested against captured attack telemetry from OTRF Security Datasets to validate that the rule fires on the documented behavior and does not fire on benign or adjacent malicious activity.
 
-**Decision documentation as a first-class artifact.** Every rule ships with a decision doc covering the threat model, modality choice, FP considerations, environmental assumptions, and source/validation provenance. The decision docs make the reasoning behind each rule legible. They demonstrate the judgment behind each rule, not just the rule itself.
+**Decision documentation as a first-class artifact.** Every rule ships with a decision doc covering the threat model, modality choice, FP considerations, environmental assumptions, and source/validation provenance. The decision docs make the reasoning behind each rule legible — what the rule assumes, what alternatives were considered, and where the threat model came from.
 
 **Synthetic fixtures aren't used.** Every fixture is derived from real captured events. This avoids the closed-loop problem where the same engineer who writes the rule also writes the synthetic events the rule is tested against — the test only validates self-consistency, not rule behavior under real data.
 
@@ -60,6 +60,26 @@ The author is forthright about what dataset-validated rules do and don't demonst
 - The validation surface is bounded by what OTRF captures. Behaviors not represented in OTRF datasets cannot be validated this way and are deferred to v1.1 or out of scope.
 - AWS coverage is intentionally narrow in v1 (one OTRF attack chain — the AWS Cloud Bank Breach scenario). Broader AWS coverage is v1.1 work.
 
+## Adapter scope
+
+The Sigma adapter implements a documented subset of the DSL covering signature-shape rules:
+
+- Generic modifiers: `startswith`, `endswith`, `contains`, `all`, `cased`
+- Regex matching via `re` (with `i`, `m`, `s` sub-modifiers)
+- Boolean conditions: `and`, `or`, `not`, brackets, operator precedence per spec
+- Search-identifier patterns: `1 of selection_*`, `all of selection_*`
+
+Out of scope:
+
+- Encoding modifiers (`base64`, `base64offset`, `utf16`, `wide`)
+- Numeric (`lt`, `lte`, `gt`, `gte`) and time (`minute`, `hour`, etc.) modifiers
+- IP modifiers (`cidr`)
+- `fieldref`, `expand`, `windash`, `exists`, `neq`, `null` matching
+- Keyword-only search identifiers
+- Correlation rules and aggregation queries
+
+When the adapter encounters an unsupported feature, it raises `ValueError` naming the unsupported construct. The full Sigma DSL is supported by [pysigma](https://github.com/SigmaHQ/pySigma); this adapter is purpose-built for evaluating signature rules against event dicts, which pysigma is not optimized for.
+
 ---
 
 # Repository Structure
@@ -70,7 +90,11 @@ pydetect/
 ├── tests/
 │   ├── conftest.py                  # fixture loaders + collection-time validation
 │   ├── adapters/
-│   │   └── sigma_adapter.py         # Sigma rule evaluator
+│   │   └── sigma/
+│   │       ├── __init__.py
+│   │       ├── adapter.py
+│   │       ├── modifiers.py
+│   │       └── condition.py
 │   ├── fixtures/
 │   │   ├── _datasets/
 │   │   │   └── <dataset-name>.json  # full OTRF event capture, shared across rules
@@ -94,14 +118,6 @@ Each rule shipped to the repository produces three artifacts on disk: the rule f
 
 SIEM-agnostic detection rules in YAML. Compiles to backend-specific queries (Splunk, Elastic, Sentinel KQL) at deploy time. pydetect's v1 Sigma scope is endpoint and log-based detection: Windows process creation, Sysmon events, PowerShell script block logging, AWS CloudTrail. Rules follow SigmaHQ field conventions where applicable.
 
-## Falco (v1.1)
-
-Runtime security rules for Linux syscalls and Kubernetes audit events. Falco rules and adapter will be added in v1.1.
-
-## Panther (v1.1)
-
-Cloud and SaaS audit log detection rules in Python (CloudTrail, Okta, GitHub audit, Google Workspace). Panther rules and adapter will be added in v1.1.
-
 ## KQL (v1.1)
 
 Microsoft Defender XDR detection queries against the published Defender table schemas. KQL rules and adapter will be added in v1.1. The author's production KQL detection authorship at the AF Cyber Defense Operations team operates separately from this repository.
@@ -119,7 +135,7 @@ def run_sigma_rule(rule_path: Path, event: dict) -> bool:
     """Returns True if the event matches the rule, False otherwise."""
 ```
 
-Tests call the adapter against every event in the dataset; the adapter handles Sigma evaluation internally. The same contract will apply to Falco, Panther, and KQL adapters when those land in v1.1.
+Tests call the adapter against every event in the dataset; the adapter handles Sigma evaluation internally. The same contract will apply to the KQL adapter when it lands in v1.1.
 
 **Tests generated from rule discovery.** The Sigma test file uses `pytest.parametrize` over rules discovered on disk. Adding a new rule to `sigma/` with a corresponding `tests/fixtures/<rule-name>/labels.json` automatically produces a new test case with no test-file edits required.
 
@@ -141,9 +157,9 @@ Every rule ships with a decision doc at `docs/<rule-name>.md`. Each doc covers f
 
 # Design Decisions
 
-## Sigma-only for v1, additional frameworks in v1.1
+## Sigma-only for v1
 
-v1 ships Sigma rules only. Sigma is the SIEM-agnostic lingua franca of detection-as-code, with the broadest immediate legibility for non-specialist reviewers and the cleanest deployment story (compiles to Splunk, Elastic, Sentinel KQL, etc. at deploy time). Falco, Panther, and KQL adapters are deferred to v1.1 to keep v1's scope bounded — the methodology is best demonstrated when one framework's harness is fully exercised against real captured telemetry rather than three frameworks each having a single rule.
+v1 ships Sigma rules only. Sigma is the SIEM-agnostic lingua franca of detection-as-code, with the broadest immediate legibility for non-specialist reviewers and the cleanest deployment story (compiles to Splunk, Elastic, Sentinel KQL, etc. at deploy time). Other framework adapters are deferred to keep v1's scope bounded — the methodology is best demonstrated when one framework's harness is fully exercised against real captured telemetry rather than multiple frameworks each having a single rule.
 
 ## Per-Rule Decision Documentation
 
@@ -189,20 +205,17 @@ There is no database, no lockfile, no central registry. Rules live as files. Dat
 - Methodology README (this document)
 - Work-side KQL rollout in progress at the AF
 
-## v1.1 (cloud-environment extension)
+## v1.1
 
-- **Falco adapter and rules.** Linux syscall and Kubernetes audit event detection following the same harness pattern as Sigma. Rules cover cloud-native deployment behavior — container runtime, K8s audit, sensitive file access from system processes.
-- **Panther adapter and rules.** Cloud audit log detection in Python — CloudTrail, Okta System Log, GitHub audit, Google Workspace admin audit. Continues the cloud-environment theme from v1's AWS Sigma rules.
 - **KQL adapter and sample rules.** Microsoft Defender XDR detection queries against published Defender table schemas, with a synthetic Python interpreter covering a bounded operator surface for filter-shape signatures.
 - **Expanded validation sources.** flaws.cloud (organic-attacker-traffic CloudTrail), invictus-ir/aws_dataset (Stratus Red Team simulations), and others where appropriate per behavior.
 - **One upstream rule submission.** Opportunistic — pick the strongest rule from the v1 batches, conform to SigmaHQ style conventions, and submit a single PR for review. Best-effort rather than hard commitment.
 
 ## v2 (post-application)
 
-- Full Falco runtime testing via `.scap` capture playback in CI
 - Kustainer-based real KQL evaluation if the v1.1 synthetic interpreter's operator surface proves insufficient
 - Continued upstream rule submissions
-- Framework expansion if the target set shifts (YARA-L for Chronicle, Splunk SPL, etc.)
+- Framework expansion if the target set shifts
 
 ---
 

@@ -1,0 +1,9 @@
+title: Harness Smoke Test
+id: 00000000-0000-0000-0000-000000000000
+description: Diagnostic rule that verifies the pydetect adapter and test harness work end-to-end. Will be retired when the first real Sigma rule is added.
+status: experimental
+detection:
+    selection:
+        EventID: 42
+    condition: selection
+level: informational
