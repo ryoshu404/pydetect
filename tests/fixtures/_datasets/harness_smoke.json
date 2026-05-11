@@ -1,0 +1,5 @@
+[
+    {"EventID": 42, "Name": "match"},
+    {"EventID": 17, "Name": "no_match"},
+    {"EventID": 42, "Name": "another_match"}
+]

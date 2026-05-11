@@ -6,10 +6,32 @@ from pathlib import Path
 
 import pytest
 
-from tests.adapters.sigma_adapter import run_sigma_rule
+from tests.adapters.sigma import run_sigma_rule
 from tests.conftest import discover_rules, load_dataset
 
 
-@pytest.mark.parametrize("rule_path,labels", discover_rules(), ids=lambda x: x.stem if isinstance(x, Path) else "")
+@pytest.mark.parametrize("rule_path, labels", discover_rules(), ids=lambda x: x.stem if isinstance(x, Path) else "")
 def test_rule_matches_exactly_labeled_events(rule_path: Path, labels: dict) -> None:
-    ...
+    mismatches = []
+    for entry in labels["datasets"]:
+        events = load_dataset(entry["file"])
+        actual = set()
+        for idx, event in enumerate(events):
+            if run_sigma_rule(rule_path, event):
+                actual.add(idx)
+        expected = set(entry["attack_event_indices"])
+        if actual != expected:
+            mismatches.append(format_mismatch(rule_path.stem, entry, actual ,expected))
+
+    assert not mismatches, "\n".join(mismatches)
+
+def format_mismatch(rule_name: str, entry: dict, actual: set[int], expected: set[int]) -> str:
+    false_negatives = expected - actual
+    false_positives = actual - expected
+
+    lines = [f"{rule_name} / {entry['file']}"]
+    if false_negatives:
+        lines.append(f" - False negatives (rule missed): {false_negatives}")
+    if false_positives:
+        lines.append(f" - False positives (rule over-fired): {false_positives}")
+    return "\n".join(lines)
