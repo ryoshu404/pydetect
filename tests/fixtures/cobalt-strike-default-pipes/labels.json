@@ -1,0 +1,9 @@
+{
+    "rule_name": "cobalt-strike-default-pipes",
+    "datasets": [
+        {
+            "file": "aptsimulator_cobaltstrike_2021-06-11T21081492.json",
+            "attack_event_indices": [223, 607, 968, 1326]
+        }
+    ]
+}

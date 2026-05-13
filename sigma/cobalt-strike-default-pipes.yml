@@ -1,0 +1,26 @@
+title: Cobalt Strike Default Named Pipes
+id: a98d5edb-bbe1-4793-bbff-e7b2ac450bbc
+status: experimental
+description: Detects named pipe creation events matching Cobalt Strike default pipe-name patterns documented in vendor blog.
+author: ryoshu404
+date: 2026-05-13
+references:
+    - https://www.cobaltstrike.com/blog/learn-pipe-fitting-for-all-of-your-offense-projects
+    - https://labs.withsecure.com/publications/detecting-cobalt-strike-default-modules-via-named-pipe-analysis
+tags:
+    - attack.command_and_control
+    - attack.t1071.002
+logsource:
+    category: pipe_created
+    product: windows
+detection:
+    selection:
+        PipeName|startswith:
+            - '\MSSE-'
+            - '\msagent_'
+            - '\postex_'
+            - '\status_'
+    condition: selection
+falsepositives:
+    - Legitimate software using similar named-pipe patterns could trigger this, but highly unlikely as these pipes are more commonly associated with CS than Windows
+level: high

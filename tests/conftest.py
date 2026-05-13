@@ -13,12 +13,20 @@ DATASETS_DIR = FIXTURE_ROOT / "_datasets"
 
 
 def load_dataset(dataset_filename: str) -> list[dict]:
-    """Load a dataset JSON file from tests/fixtures/_datasets/."""
+    """Load a dataset JSON file from tests/fixtures/_datasets/.
+
+    Supports both JSON array format and NDJSON (one JSON object per line).
+    """
     dataset_path = DATASETS_DIR / dataset_filename
     if not dataset_path.is_file():
         raise FileNotFoundError(f"{dataset_path} not found")
-    with open (dataset_path, "r", encoding="utf-8") as f:
-        dataset = json.load(f)
+    with open(dataset_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    try:
+        dataset = json.loads(content)
+    except json.JSONDecodeError:
+        # Try NDJSON: one JSON object per line
+        dataset = [json.loads(line) for line in content.splitlines() if line.strip()]
     if not isinstance(dataset, list):
         raise ValueError(f"Expected list, received {type(dataset).__name__}")
     if not dataset:
