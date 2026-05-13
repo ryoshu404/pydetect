@@ -2,8 +2,6 @@
 
 pydetect is a Python repository for authoring and testing Sigma detection rules. Rules ship with per-rule decision documentation, a pytest harness that validates them against real captured attack telemetry, and GitHub Actions CI that blocks merges without passing tests.
 
-KQL adapter is deferred to v1.1.
-
 ---
 
 # What It Is
@@ -16,7 +14,7 @@ pydetect treats detection rules as production code:
 - Collection-time fixture validation that fails CI before any test runs if rules are missing labels
 - GitHub Actions CI gating every push and pull request
 
-Rules are organized into TTP-cluster batches — each batch covers an attacker behavior with one or more rules sharing a threat-research foundation. v1 batches: Cobalt Strike default named pipes (T1071.001), LSASS credential access (T1003.001), Windows service creation persistence (T1543.003), and AWS valid account abuse via STS credential reuse (T1078.004).
+Rules are organized into TTP-cluster batches — each batch covers an attacker behavior with one or more rules sharing a threat-research foundation. v1 batches: Cobalt Strike default named pipes (T1071.002), LSASS credential access (T1003.001), Windows service creation persistence (T1543.003), and AWS valid account abuse via STS credential reuse (T1078.004).
 
 ---
 
@@ -46,8 +44,6 @@ All three checks are enforced by a single assertion: rule fires on exactly the l
 
 v1 uses OTRF Security Datasets exclusively as the validation source. Single-source validation keeps the methodology demonstration clean and ensures every rule has consistent, ATT&CK-mapped, contributor-attributable provenance.
 
-v1.1 will expand to additional sources: organic-attacker-traffic CloudTrail captures (e.g., flaws.cloud), Stratus Red Team simulations, and others. These broaden the validation surface but require more manual labeling work, so they're scope expansion for post-v1.
-
 ## Limitations
 
 What dataset-validated rules don't demonstrate:
@@ -55,6 +51,10 @@ What dataset-validated rules don't demonstrate:
 - Rules are validated against captured telemetry, not deployed in production. Real-world FP rate measurement requires production telemetry distribution, which isn't in scope for a public detection-as-code repository. Rules are demonstrably correct against their validation corpora; deployment in any specific environment would still require local validation.
 - The validation surface is bounded by what OTRF captures. Behaviors not represented in OTRF datasets can't be validated this way and are deferred to v1.1 or out of scope.
 - AWS coverage is intentionally narrow in v1 (one OTRF attack chain — the AWS Cloud Bank Breach scenario). Broader AWS coverage is v1.1 work.
+- The pydetect Sigma adapter implements field-level matching and condition evaluation. It does **not** translate Sigma logsource categories into event-type filters.
+    - In pydetect's test harness, the adapter is run against every event in the dataset, regardless of EventID. The rule's field criteria implicitly filter the matches. Events without the required fields (e.g., events without `PipeName`) will never match a rule that filters on those fields. This works correctly for rules where the field criteria are sufficient to distinguish target events from non-target events.
+    - If a rule's correctness depends on EventID-based filtering that isn't expressible in field criteria alone, the rule must include explicit EventID matching in its detection block. Most v1 rules do not require this, but it is a known constraint for future rule authoring.
+    - This is a known gap. Production Sigma deployments do not have this limitation because the SIEM backend handles logsource translation.
 
 ## Adapter scope
 
@@ -113,10 +113,6 @@ Each rule shipped to the repository produces three artifacts on disk: the rule f
 ## Sigma
 
 SIEM-agnostic detection rules in YAML. Compiles to backend-specific queries (Splunk, Elastic, Sentinel KQL) at deploy time. pydetect's v1 Sigma scope is endpoint and log-based detection: Windows process creation, Sysmon events, PowerShell script block logging, AWS CloudTrail. Rules follow SigmaHQ field conventions where applicable.
-
-## KQL (v1.1)
-
-Microsoft Defender XDR detection queries against the published Defender table schemas. KQL rules and adapter will be added in v1.1. My production KQL detection authorship at the AF Cyber Defense Operations team operates separately from this repository.
 
 ---
 
@@ -183,9 +179,7 @@ No database, no lockfile, no central registry. Rules live as files. Datasets liv
 
 **v1.0 released.** Sigma adapter, labels-based test harness, and GitHub Actions CI are in place and operational.
 
-**Rules in progress.** Rule authorship is the active workstream. The first batch (Cobalt Strike default named pipes, validated against the APT Simulator OTRF dataset) is in research and labeling.
-
-**Work-side application.** I'm applying the same harness pattern privately to a subset of my production KQL detections at the AF Cyber Defense Operations team. The public pydetect repository demonstrates the methodology; the private work-side rollout backs the production-use claim.
+**Rules in progress.** The following rules are intended to be completed: Cobalt Strike default named pipes (T1071.002), LSASS credential access (T1003.001), Windows service creation persistence (T1543.003), and AWS valid account abuse via STS credential reuse (T1078.004).
 
 ---
 
@@ -198,7 +192,6 @@ No database, no lockfile, no central registry. Rules live as files. Datasets liv
 - pytest integration with parametrized rule discovery
 - GitHub Actions CI workflow
 - Methodology README (this document)
-- Work-side KQL rollout in progress at the AF
 
 ## v1.x (in progress)
 
