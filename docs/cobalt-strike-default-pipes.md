@@ -33,4 +33,4 @@ The OTRF Dataset for APT Simulator Cobalt Strike was used to validate:
 
 https://securitydatasets.com/notebooks/atomic/windows/defense_evasion/SDWIN-210611210814.html
 
-The rule fires on exactly 4 of 5 EID 17 events showing this behaviour.
+The rule fires on exactly 4 of 5 EID 17 events showing this behaviour. The fifth pipe event (\334485) is the output channel for a CS psexec_psh service installation captured separately by EID 7045 at index 2608. The rule correctly does not detect this pipe because it falls outside the documented default-pipe-name patterns; the corresponding service installation is detected by the Windows Service Creation Persistence rule.
