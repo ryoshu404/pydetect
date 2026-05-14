@@ -1,0 +1,9 @@
+{
+    "rule_name": "lsass-credential-access",
+    "datasets": [
+        {
+            "file": "empire_mimikatz_logonpasswords_2020-08-07103224.json",
+            "attack_event_indices": [2450]
+        }
+    ]
+}
