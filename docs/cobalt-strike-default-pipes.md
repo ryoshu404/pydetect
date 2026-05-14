@@ -32,3 +32,5 @@ https://www.cobaltstrike.com/blog/learn-pipe-fitting-for-all-of-your-offense-pro
 The OTRF Dataset for APT Simulator Cobalt Strike was used to validate:
 
 https://securitydatasets.com/notebooks/atomic/windows/defense_evasion/SDWIN-210611210814.html
+
+The rule fires on exactly 4 of 5 EID 17 events showing this behaviour.
