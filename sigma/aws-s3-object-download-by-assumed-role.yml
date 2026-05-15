@@ -1,0 +1,30 @@
+title: AWS S3 Object Download By Assumed Role
+id: 3f7c9749-1502-4330-aa88-fff2c77ce367
+status: experimental
+description: Detects S3 GetObject calls by assumed-role identities originating from source IP addresses outside AWS infrastructure, indicating potential data exfiltration of S3 objects following credential compromise.
+author: ryoshu404
+date: 2026-05-15
+references:
+    - https://research.splunk.com/cloud/e4384bbf-5835-4831-8d85-694de6ad2cc6/
+    - https://www.detectionatscale.com/p/correlating-aws-s3-breaches
+    - https://attack.mitre.org/techniques/T1530/
+tags:
+    - attack.collection
+    - attack.exfiltration
+    - attack.t1530
+logsource:
+    product: aws
+    service: cloudtrail
+detection:
+    selection:
+        eventSource: 's3.amazonaws.com'
+        eventName: 'GetObject'
+        userIdentity.type: 'AssumedRole'
+    filter_aws_internal:
+        sourceIPAddress|endswith: '.amazonaws.com'
+    condition: selection and not filter_aws_internal
+falsepositives:
+    - Developer or operator downloading from S3 via assumed-role credentials from a non-AWS network
+    - CI/CD pipelines accessing S3 from non-AWS infrastructure using assumed roles
+    - Authorized data exports performed through assumed-role identities outside AWS
+level: medium

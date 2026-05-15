@@ -1,0 +1,9 @@
+{
+    "rule_name": "aws-valid-account-abuse-ec2",
+    "datasets": [
+        {
+            "file": "ec2_proxy_s3_exfiltration_2020-09-14011940.json",
+            "attack_event_indices": [44, 45, 46, 79, 80, 97, 98, 99, 100, 101, 102]
+        }
+    ]
+}

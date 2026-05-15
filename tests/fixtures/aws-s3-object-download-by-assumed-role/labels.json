@@ -1,0 +1,9 @@
+{
+    "rule_name": "aws-s3-object-download-by-assumed-role",
+    "datasets": [
+        {
+            "file": "ec2_proxy_s3_exfiltration_2020-09-14011940.json",
+            "attack_event_indices": [79, 102]
+        }
+    ]
+}
