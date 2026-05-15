@@ -59,7 +59,10 @@ def _parse(tokens: list[str]) -> object:
     stream = _TokenStream(tokens)
     tree = _parse_or(stream)
     if stream.peek() is not None:
-        raise ValueError(...)
+        raise ValueError(
+            f"Unexpected token '{stream.peek()}' at position {stream.position} "
+            f"after parsing condition expression"
+            )
     return tree
 
 def _parse_or(stream):
@@ -102,12 +105,22 @@ def _parse_atom(stream):
         stream.expect("of")
         pattern = stream.consume()
         return ("of_pattern", count, pattern)
+    elif next_token.isdigit():
+        raise ValueError(
+            f"Quantifier count '{next_token}' is out of scope; "
+            f"only '1' and 'all' are supported in v1"
+            )
     else:
         return ("identifier", stream.consume())
 
 def _evaluate_tree(tree, selection_results):
     match tree:
         case ("identifier", name):
+            if name not in selection_results:
+                raise ValueError(
+                    f"Condition references undefined selection '{name}'. "
+                    f"Defined selections: {sorted(selection_results.keys())}"
+                    )
             return selection_results[name]
         case ("not", subtree):
             return not _evaluate_tree(subtree, selection_results)
