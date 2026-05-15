@@ -55,6 +55,8 @@ What dataset-validated rules don't demonstrate:
     - In pydetect's test harness, the adapter is run against every event in the dataset, regardless of EventID. The rule's field criteria implicitly filter the matches. Events without the required fields (e.g., events without `PipeName`) will never match a rule that filters on those fields. This works correctly for rules where the field criteria are sufficient to distinguish target events from non-target events.
     - If a rule's correctness depends on EventID-based filtering that isn't expressible in field criteria alone, the rule must include explicit EventID matching in its detection block. Most v1 rules do not require this, but it is a known constraint for future rule authoring.
     - This is a known gap. Production Sigma deployments do not have this limitation because the SIEM backend handles logsource translation.
+- The adapter interprets `.` in field names as nested-object traversal (e.g., `userIdentity.type` looks up `event["userIdentity"]["type"]`). This supports nested telemetry formats like AWS CloudTrail. Events with literal dotted keys (e.g., `event["data.point"]`) are not currently supported.
+- Field-missing and field-is-None are treated identically by the adapter — both produce a non-match. Rules requiring strict distinction between these cases would need adapter changes.
 
 ## Adapter scope
 
