@@ -80,10 +80,21 @@ def _evaluate_field_criteria(field_spec: str, expected_value: object, event: dic
     parts = field_spec.split("|")
     field_name = parts[0]
     modifiers = parts[1:]
-    if field_name not in event:
+    field_value = _get_nested_value(event, field_name)
+    if field_value is None:
         return False
-    field_value = event[field_name]
     if not isinstance(expected_value, list):
         return match_field(modifiers, field_value, expected_value)
     combine = all if "all" in modifiers else any
     return combine(match_field(modifiers, field_value, v) for v in expected_value)
+
+def _get_nested_value(event: dict, field_name: str) -> object | None:
+    """Traverse a dotted field path through a nested dict."""
+    value = event
+    for part in field_name.split("."):
+        if not isinstance(value, dict):
+            return None
+        if part not in value:
+            return None
+        value = value[part]
+    return value
