@@ -10,7 +10,8 @@ from tests.adapters.sigma import run_sigma_rule
 from tests.conftest import discover_rules, load_dataset
 
 
-@pytest.mark.parametrize("rule_path, labels", discover_rules(), ids=lambda x: x.stem if isinstance(x, Path) else "")
+_rules = discover_rules()
+@pytest.mark.parametrize("rule_path, labels", _rules, ids=[r[0].stem for r in _rules])
 def test_rule_matches_exactly_labeled_events(rule_path: Path, labels: dict) -> None:
     mismatches = []
     for entry in labels["datasets"]:
