@@ -39,7 +39,7 @@ This rule is expected to have a high FP rate as written. AV/EDR products, securi
 
 ## Environmental Assumptions
 
-This detection rule relies on sysmon logging Sysmon Event ID 10 which is ProcessAccess
+This detection rule relies on sysmon logging Sysmon Event ID 10 which is ProcessAccess. GrantedAccess is matched as hex strings (0x1010, etc.), consistent with OTRF's representation. Production environments where this field is presented as integers would require either ingest-layer normalization or rule adjustment.
 
 ## Source / Validation
 

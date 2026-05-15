@@ -10,7 +10,7 @@ CloudTrail is the only AWS telemetry layer that captures the data event `GetObje
 
 ## FP Considerations
 
-Even with the external-IP filter, this rule has a high expected FP rate. Legitimate users downloading from S3 via assumed-role credentials from any non-AWS network (offices, home, developer laptops, CI/CD systems) will trigger it. Reccommendation is to correlate with AWS Valid Account Abuse EC2 rule, and use this to see collection activity specifically, hence why medium was the assigned level in the Sigma rule.
+Even with the external-IP filter, this rule has a high expected FP rate. Legitimate users downloading from S3 via assumed-role credentials from any non-AWS network (offices, home, developer laptops, CI/CD systems) will trigger it. Recommendation is to correlate with AWS Valid Account Abuse EC2 rule, and use this to see collection activity specifically, hence why medium was the assigned level in the Sigma rule.
 
 ## Environmental Assumptions
 

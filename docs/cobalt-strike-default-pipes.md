@@ -2,7 +2,7 @@
 
 ## Threat Model
 
-This rule detects named pipe creation events matching Cobalt Strike default pipe-name patterns documented from the vendor blog listed below. This technique maps to MITRE ATT&CK T1071.002 (Application Layer Protocol: File Transfer Protocols). Cobalt Strike utilizes named pipes encapsualted in SMB for peer-to-peer communication, exchanging data between the beacon and sacrificial processes
+This rule detects named pipe creation events matching Cobalt Strike default pipe-name patterns documented from the vendor blog listed below. This technique maps to MITRE ATT&CK T1071.002 (Application Layer Protocol: File Transfer Protocols). Cobalt Strike utilizes named pipes encapsulated in SMB for peer-to-peer communication, exchanging data between the beacon and sacrificial processes
 
 ## Modality Choice
 
@@ -10,11 +10,11 @@ The `pipe_created` logsource (Sysmon EID 17 and 18) is the direct telemetry for 
 
 ## FP Considerations
 
-The patterns identified in the detection section are associated with Cobalt Strike. The following command was run on 3 Windows hosts(analysis VM, general desktop, remote desktop):
+The patterns identified in the detection section are associated with Cobalt Strike. The following command was run on 3 Windows hosts (analysis VM, general desktop, remote desktop):
 `[System.IO.Directory]::GetFiles("\\.\pipe\")`
 It returned no pipes matching the detection patterns and research did not surface default Windows installations using these naming conventions. It is possible that some other software utilizes these naming conventions for their pipes, but it is highly unlikely.
 
-Since the naming convention is commonly associated with Cobalt Strike, the rule is purposely broad with the `startswith`, to catch anything with the documented prefixes regardless of what their suffixes maybe. In the event that more fine tunin is needed `PipeName|re` can be utilized for stricter matching based on the data found in the example dataset and the vendor blog.
+Since the naming convention is commonly associated with Cobalt Strike, the rule is purposely broad with the `startswith`, to catch anything with the documented prefixes regardless of what their suffixes may be. In the event that more fine tuning is needed `PipeName|re` can be utilized for stricter matching based on the data found in the example dataset and the vendor blog.
 - `PipeName|re: '^\\(MSSE-[a-zA-Z0-9_]+-server|(msagent|postex|status)_[a-zA-Z0-9_]+)'`
 
 ## Environmental Assumptions
