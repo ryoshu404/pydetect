@@ -14,7 +14,7 @@ pydetect treats detection rules as production code:
 - Collection-time fixture validation that fails CI before any test runs if rules are missing labels
 - GitHub Actions CI gating every push and pull request
 
-Rules are organized into TTP-cluster batches — each batch covers an attacker behavior with one or more rules sharing a threat-research foundation. v1 batches: Cobalt Strike default named pipes (T1071.002), LSASS credential access (T1003.001), Windows service creation persistence (T1543.003), and AWS valid account abuse via STS credential reuse (T1078.004).
+Rules are organized into TTP-cluster batches — each batch covers an attacker behavior with one or more rules sharing a threat-research foundation. v1 batches: Cobalt Strike default named pipes (T1071.002), LSASS credential access (T1003.001), AWS EC2 instance role credential abuse (T1078.004), and AWS S3 object download by assumed role (T1530).
 
 ---
 
@@ -181,7 +181,11 @@ No database, no lockfile, no central registry. Rules live as files. Datasets liv
 
 **v1.0 released.** Sigma adapter, labels-based test harness, and GitHub Actions CI are in place and operational.
 
-**Rules in progress.** The following rules are intended to be completed: Cobalt Strike default named pipes (T1071.002), LSASS credential access (T1003.001), Windows service creation persistence (T1543.003), and AWS valid account abuse via STS credential reuse (T1078.004).
+### Rules Released:
+- Cobalt Strike default named pipes (T1071.002)
+- LSASS credential access (T1003.001)
+- AWS EC2 instance role credential abuse (T1078.004)
+- AWS S3 object download by assumed role (T1530). 
 
 ---
 
@@ -195,15 +199,10 @@ No database, no lockfile, no central registry. Rules live as files. Datasets liv
 - GitHub Actions CI workflow
 - Methodology README (this document)
 
-## v1.x (in progress)
-
-- 4 Sigma rules across 4 TTP-cluster batches with per-rule decision docs and OTRF dataset validation
-
 ## v1.1
 
 - **KQL adapter and sample rules.** Microsoft Defender XDR detection queries against published Defender table schemas, with a synthetic Python interpreter covering a bounded operator surface for filter-shape signatures.
 - **Expanded validation sources.** flaws.cloud (organic-attacker-traffic CloudTrail), invictus-ir/aws_dataset (Stratus Red Team simulations), and others where appropriate per behavior.
-- **One upstream rule submission.** Opportunistic — pick the strongest rule from the v1 batches, conform to SigmaHQ style conventions, and submit a single PR for review. Best-effort rather than hard commitment.
 
 ## v2 (post-application)
 
