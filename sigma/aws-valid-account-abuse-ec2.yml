@@ -1,0 +1,26 @@
+title: AWS EC2 Instance Role Credentials Used Outside AWS Infrastructure
+id: 3bb32ac6-5305-4585-af30-b5758024c75b
+status: experimental
+description: Detects EC2 instance roles being used from source IP addresses outside AWS infrastructure.
+author: ryoshu404
+date: 2026-05-15
+references:
+    - https://www.elastic.co/guide/en/security/8.19/aws-ec2-instance-console-login-via-assumed-role.html
+    - https://www.ilyakobzar.com/p/ec2-iam-role-sts-credentials-compromise
+tags:
+    - attack.initial_access
+    - attack.t1078.004
+logsource:
+    product: aws
+    service: cloudtrail
+detection:
+    selection:
+        userIdentity.type: 'AssumedRole'
+        userIdentity.principalId|contains: ':i-'
+    filter_aws_internal:
+        sourceIPAddress|endswith: '.amazonaws.com'
+    condition: selection and not filter_aws_internal
+falsepositives:
+    - EC2 instances connecting to AWS services via VPC endpoints that resolve to non-amazonaws.com source IPs (rare, environment-specific)
+    - Hybrid networking architectures where AWS API traffic routes through on-premises infrastructure
+level: high
