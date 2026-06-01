@@ -204,13 +204,6 @@ No database, no lockfile, no central registry. Rules live as files. Datasets liv
 - **KQL adapter and sample rules.** Microsoft Defender XDR detection queries against published Defender table schemas, with a synthetic Python interpreter covering a bounded operator surface for filter-shape signatures.
 - **Expanded validation sources.** flaws.cloud (organic-attacker-traffic CloudTrail), invictus-ir/aws_dataset (Stratus Red Team simulations), and others where appropriate per behavior.
 
-## v2 (post-application)
-
-- Kustainer-based real KQL evaluation if the v1.1 synthetic interpreter's operator surface proves insufficient
-- Continued upstream rule submissions
-- Framework expansion if the target set shifts
-
----
 
 # Related Projects
 
